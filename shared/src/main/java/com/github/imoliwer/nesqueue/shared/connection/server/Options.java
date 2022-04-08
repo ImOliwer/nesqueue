@@ -6,6 +6,11 @@ import java.util.Set;
 import static com.github.imoliwer.nesqueue.shared.connection.server.Options.Ignorance.ALLOW_ALL;
 import static java.util.Collections.addAll;
 
+/**
+ * This class holds the necessary options for {@link SocketServer} implementation(s).
+ *
+ * Reference: {@link SocketServerImpl}
+ */
 public final class Options {
     public enum Ignorance {
         WHITELIST,

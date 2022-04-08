@@ -18,7 +18,7 @@ import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public final class SocketServerImpl implements SocketServer {
+final class SocketServerImpl implements SocketServer {
     /**
      * {@link Thread} this field holds the thread used to handle client data.
      **/
@@ -44,7 +44,7 @@ public final class SocketServerImpl implements SocketServer {
      */
     private final Options options;
 
-    public SocketServerImpl(InetSocketAddress address, Options options) throws IOException {
+    SocketServerImpl(InetSocketAddress address, Options options) throws IOException {
         this.thread = new Thread(
             () -> {
                 try {
