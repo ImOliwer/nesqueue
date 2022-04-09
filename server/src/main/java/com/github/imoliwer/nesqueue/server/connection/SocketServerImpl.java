@@ -1,5 +1,7 @@
 package com.github.imoliwer.nesqueue.server.connection;
 
+import com.github.imoliwer.nesqueue.shared.crypto.CryptoHandle;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -19,32 +21,17 @@ import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 final class SocketServerImpl implements SocketServer {
-    /**
-     * {@link Thread} this field holds the thread used to handle client data.
-     **/
+    // handle related
     private final Thread thread;
-
-    /**
-     * {@link Selector} the selector used to handle client sessions.
-     **/
-    private final Selector selector;
-
-    /**
-     * {@link ServerSocketChannel} the channel used widely for communication.
-     **/
-    private final ServerSocketChannel channel;
-
-    /**
-     * {@link Set<SelectionKey>} hashset containing all active and authorized sessions.
-     **/
-    private final Set<SelectionKey> sessions;
-
-    /**
-     * {@link Options} the options instance passed through during instantiation.
-     */
+    private final CryptoHandle cryptoHandle;
     private final Options options;
 
-    SocketServerImpl(InetSocketAddress address, Options options) throws IOException {
+    // server & session related
+    private final Selector selector;
+    private final ServerSocketChannel channel;
+    private final Set<SelectionKey> sessions;
+
+    SocketServerImpl(InetSocketAddress address, CryptoHandle cryptoHandle, Options options) throws IOException {
         this.thread = new Thread(
             () -> {
                 try {
@@ -58,6 +45,7 @@ final class SocketServerImpl implements SocketServer {
             },
             "Client Handle"
         );
+        this.cryptoHandle = cryptoHandle;
         this.options = options.withAddress(address.getAddress().getHostAddress());
         this.selector = Selector.open();
         this.channel = doWith(ServerSocketChannel.open(), socketChannel -> {
