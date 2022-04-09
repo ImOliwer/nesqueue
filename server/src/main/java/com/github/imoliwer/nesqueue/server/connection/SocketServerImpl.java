@@ -1,4 +1,4 @@
-package com.github.imoliwer.nesqueue.shared.connection.server;
+package com.github.imoliwer.nesqueue.server.connection;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,8 +10,8 @@ import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.github.imoliwer.nesqueue.shared.connection.server.Options.Ignorance.BLACKLIST;
-import static com.github.imoliwer.nesqueue.shared.connection.server.Options.Ignorance.WHITELIST;
+import static com.github.imoliwer.nesqueue.server.connection.Options.Ignorance.BLACKLIST;
+import static com.github.imoliwer.nesqueue.server.connection.Options.Ignorance.WHITELIST;
 import static com.github.imoliwer.nesqueue.shared.util.SharedHelper.doWith;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
@@ -114,6 +114,7 @@ final class SocketServerImpl implements SocketServer {
                     key.cancel();
                 } else {
                     clientChannel.register(this.selector, OP_READ);
+                    sessions.add(key);
                 }
             }
 
