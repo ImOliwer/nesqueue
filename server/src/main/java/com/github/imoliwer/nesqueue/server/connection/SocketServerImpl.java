@@ -1,6 +1,8 @@
 package com.github.imoliwer.nesqueue.server.connection;
 
 import com.github.imoliwer.nesqueue.shared.crypto.CryptoHandle;
+import com.github.imoliwer.nesqueue.shared.timer.Timer;
+import com.github.imoliwer.nesqueue.shared.timer.TimerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -11,11 +13,15 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static com.github.imoliwer.nesqueue.server.connection.Options.Ignorance.BLACKLIST;
 import static com.github.imoliwer.nesqueue.server.connection.Options.Ignorance.WHITELIST;
+import static com.github.imoliwer.nesqueue.shared.timer.Timer.REPEATING;
 import static com.github.imoliwer.nesqueue.shared.util.SharedHelper.doWith;
+import static com.github.imoliwer.nesqueue.shared.timer.Timer.Callback;
 import static java.nio.ByteBuffer.allocate;
+import static java.nio.ByteBuffer.wrap;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -23,6 +29,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 final class SocketServerImpl implements SocketServer {
     // handle related
     private final Thread thread;
+    private final Timer sessionMonitorTimer;
     private final CryptoHandle cryptoHandle;
     private final Options options;
 
@@ -31,7 +38,10 @@ final class SocketServerImpl implements SocketServer {
     private final ServerSocketChannel channel;
     private final Set<SelectionKey> sessions;
 
-    SocketServerImpl(InetSocketAddress address, CryptoHandle cryptoHandle, Options options) throws IOException {
+    // states
+    private boolean hasClosed;
+
+    SocketServerImpl(InetSocketAddress address, TimerFactory timerFactory, CryptoHandle cryptoHandle, Options options) throws IOException {
         this.thread = new Thread(
             () -> {
                 try {
@@ -45,6 +55,7 @@ final class SocketServerImpl implements SocketServer {
             },
             "Client Handle"
         );
+        this.sessionMonitorTimer = timerFactory.create(REPEATING, getSessionMonitorCallback());
         this.cryptoHandle = cryptoHandle;
         this.options = options.withAddress(address.getAddress().getHostAddress());
         this.selector = Selector.open();
@@ -65,17 +76,77 @@ final class SocketServerImpl implements SocketServer {
 
     @Override
     public boolean start() {
-        if (thread.isAlive()) {
+        if (hasClosed || thread.isAlive()) {
             return false;
         }
         thread.start();
+        sessionMonitorTimer.start(TimeUnit.SECONDS, 5, false);
         return true;
     }
 
     @Override
     public void stop() {
+        if (hasClosed)
+            return;
+
+        // interrupt the thread if it's alive
         if (thread.isAlive()) {
             thread.interrupt();
+        }
+
+        // stop the timer
+        sessionMonitorTimer.stop();
+
+        // handle termination
+        try {
+            final var sessionIterator = sessions.iterator();
+            while (sessionIterator.hasNext()) {
+                final var session = sessionIterator.next();
+                session.channel().close();
+                session.cancel();
+                sessionIterator.remove();
+            }
+
+            channel.close();
+            selector.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        // modify state
+        hasClosed = true;
+    }
+
+    @Override
+    public void forward(SocketChannel channel, byte[] bytes) {
+        if (hasClosed)
+            return;
+
+        final var encryptedBytes = cryptoHandle
+                .encrypt(bytes)
+                .getBytes(UTF_8);
+
+        this.safeForward(channel, wrap(encryptedBytes));
+    }
+
+    @Override
+    public void broadcast(String message) {
+        if (hasClosed)
+            return;
+
+        final var encryptedBytes = cryptoHandle.encrypt(message.getBytes(UTF_8));
+        final var buffer = wrap(encryptedBytes.getBytes(UTF_8));
+
+        for (final SelectionKey key : this.sessions) {
+            this.safeForward((SocketChannel) key.channel(), buffer);
+        }
+    }
+
+    private void safeForward(SocketChannel channel, ByteBuffer buffer) {
+        try {
+            channel.write(buffer);
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -124,5 +195,36 @@ final class SocketServerImpl implements SocketServer {
 
             keys.remove();
         }
+    }
+
+    private Callback<Timer> getSessionMonitorCallback() {
+        return $ -> {
+            final var iterator = sessions.iterator();
+            var affected = 0;
+
+            try {
+                while (iterator.hasNext()) {
+                    final var key = iterator.next();
+                    final var channel = (SocketChannel) key.channel();
+
+                    if (channel.isConnected()) {
+                        continue;
+                    }
+
+                    channel.close();
+                    key.cancel();
+                    iterator.remove();
+                    affected++;
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+
+            if (affected <= 0) {
+                return;
+            }
+
+            System.out.printf("Session Monitor >> Cleaned up %s disconnected sessions.\n", affected);
+        };
     }
 }
