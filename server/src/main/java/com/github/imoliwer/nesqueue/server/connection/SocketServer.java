@@ -1,29 +1,17 @@
 package com.github.imoliwer.nesqueue.server.connection;
 
+import com.github.imoliwer.nesqueue.shared.base.NesQueueBase;
 import com.github.imoliwer.nesqueue.shared.crypto.CryptoHandle;
 import com.github.imoliwer.nesqueue.shared.timer.TimerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 /**
  * This interface represents the server socket of said queue.
  */
-public interface SocketServer {
-    /**
-     * Start this socket server.
-     *
-     * @return {@link Boolean} whether it was started successfully or not.
-     */
-    boolean start();
-
-    /**
-     * Stop this socket server.
-     */
-    void stop();
-
+public interface SocketServer extends NesQueueBase {
     /**
      * Forward bytes to a specific channel.
      *
