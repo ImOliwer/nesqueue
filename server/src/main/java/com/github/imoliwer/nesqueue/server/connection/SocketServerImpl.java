@@ -5,6 +5,7 @@ import com.github.imoliwer.nesqueue.shared.timer.Timer;
 import com.github.imoliwer.nesqueue.shared.timer.TimerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -20,6 +21,7 @@ import static com.github.imoliwer.nesqueue.server.connection.Options.Ignorance.W
 import static com.github.imoliwer.nesqueue.shared.timer.Timer.REPEATING;
 import static com.github.imoliwer.nesqueue.shared.util.SharedHelper.doWith;
 import static com.github.imoliwer.nesqueue.shared.timer.Timer.Callback;
+import static com.github.imoliwer.nesqueue.shared.util.SharedHelper.serialize;
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.wrap;
 import static java.nio.channels.SelectionKey.OP_ACCEPT;
@@ -118,23 +120,23 @@ final class SocketServerImpl implements SocketServer {
     }
 
     @Override
-    public void forward(SocketChannel channel, byte[] bytes) {
+    public <Type extends Serializable> void forward(SocketChannel channel, Type object) {
         if (hasClosed)
             return;
 
         final var encryptedBytes = cryptoHandle
-                .encrypt(bytes)
-                .getBytes(UTF_8);
+            .encrypt(serialize(object))
+            .getBytes(UTF_8);
 
         this.safeForward(channel, wrap(encryptedBytes));
     }
 
     @Override
-    public void broadcast(String message) {
+    public <Type extends Serializable> void broadcast(Type object) {
         if (hasClosed)
             return;
 
-        final var encryptedBytes = cryptoHandle.encrypt(message.getBytes(UTF_8));
+        final var encryptedBytes = cryptoHandle.encrypt(serialize(object));
         final var buffer = wrap(encryptedBytes.getBytes(UTF_8));
 
         for (final SelectionKey key : this.sessions) {

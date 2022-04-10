@@ -8,7 +8,7 @@ import static java.util.Collections.addAll;
 
 /**
  * This class holds the necessary options for {@link SocketServer} implementation(s).
- *
+ * <p>
  * Reference: {@link SocketServerImpl}
  */
 public final class Options {
@@ -21,10 +21,14 @@ public final class Options {
         ALLOW_ALL
     }
 
-    /** {@link Ignorance} representative of what said server chose to have as ignorance level. **/
+    /**
+     * {@link Ignorance} representative of what said server chose to have as ignorance level.
+     **/
     private Ignorance ignoranceLevel;
 
-    /** {@link Set<String>} the addresses of which will be either whitelisted or blacklisted. **/
+    /**
+     * {@link Set<String>} the addresses of which will be either whitelisted or blacklisted.
+     **/
     private final Set<String> addresses;
 
     /**

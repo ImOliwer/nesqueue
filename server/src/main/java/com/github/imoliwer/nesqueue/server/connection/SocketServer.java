@@ -5,6 +5,7 @@ import com.github.imoliwer.nesqueue.shared.crypto.CryptoHandle;
 import com.github.imoliwer.nesqueue.shared.timer.TimerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
@@ -13,35 +14,35 @@ import java.nio.channels.SocketChannel;
  */
 public interface SocketServer extends NesQueueBase {
     /**
-     * Forward bytes to a specific channel.
+     * Serialize and forward an object to a channel.
      *
-     * @param channel {@link SocketChannel} the channel of which to forward the bytes to.
-     * @param bytes {@link Byte} array of bytes to be forwarded.
+     * @param channel {@link SocketChannel} the channel to forward to.
+     * @param object {@link Type} the object to be forwarded.
      */
-    void forward(SocketChannel channel, byte[] bytes);
+    <Type extends Serializable> void forward(SocketChannel channel, Type object);
 
     /**
-     * Broadcast a text to all the current available sessions.
+     * Serialize and broadcast an object to all the current available sessions.
      *
-     * @param message {@link String} the message to be forwarded.
+     * @param object {@link Type} the object to broadcast.
      */
-    void broadcast(String message);
+    <Type extends Serializable> void broadcast(Type object);
 
     /**
      * Create a new instance of a socket server by address and options.
      *
-     * @param address {@link InetSocketAddress} the address to be bound to and started on.
+     * @param address      {@link InetSocketAddress} the address to be bound to and started on.
      * @param timerFactory {@link TimerFactory} factory instance used to create the session monitoring timer.
      * @param cryptoHandle {@link CryptoHandle} the crypto handle instance to be used in encryption and decryption of forwarded messages.
-     * @param options {@link Options} the options to be bound to the new socket server.
+     * @param options      {@link Options} the options to be bound to the new socket server.
      * @return {@link SocketServer}
      * @throws IOException if there was an error during creation of the socket server.
      */
     static SocketServer create(
-            InetSocketAddress address,
-            TimerFactory timerFactory,
-            CryptoHandle cryptoHandle,
-            Options options
+        InetSocketAddress address,
+        TimerFactory timerFactory,
+        CryptoHandle cryptoHandle,
+        Options options
     ) throws IOException {
         return new SocketServerImpl(address, timerFactory, cryptoHandle, options);
     }
