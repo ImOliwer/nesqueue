@@ -174,8 +174,7 @@ final class SocketServerImpl implements SocketServer {
                     clientChannel.close();
                     key.cancel();
                 } else {
-                    clientChannel.register(this.selector, OP_READ);
-                    sessions.add(key);
+                    sessions.add(clientChannel.register(this.selector, OP_READ));
                 }
             }
 

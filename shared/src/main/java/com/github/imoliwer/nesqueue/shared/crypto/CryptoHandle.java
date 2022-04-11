@@ -1,6 +1,9 @@
 package com.github.imoliwer.nesqueue.shared.crypto;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -27,8 +30,21 @@ public final class CryptoHandle {
      */
     public CryptoHandle(String algorithm, PrivateKey privateKey, PublicKey publicKey) {
         this.algorithm = algorithm;
-        this.privateKey = privateKey;
-        this.publicKey = publicKey;
+        if (privateKey == null && publicKey == null) {
+            try {
+                final var generator = KeyPairGenerator.getInstance(algorithm);
+                generator.initialize(4096);
+                final var pair = generator.generateKeyPair();
+
+                this.privateKey = pair.getPrivate();
+                this.publicKey = pair.getPublic();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Failed during creation of private/public key pair.");
+            }
+        } else {
+            this.privateKey = privateKey;
+            this.publicKey = publicKey;
+        }
     }
 
     /**
