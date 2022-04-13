@@ -1,7 +1,6 @@
 package com.github.imoliwer.nesqueue.shared.crypto;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
